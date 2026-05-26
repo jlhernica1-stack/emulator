@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚡ RetroLauncher Pro</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap');
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#07070d;color:#ddd;font-family:'Share Tech Mono',monospace;min-height:100vh}
+
+.scanline{position:fixed;top:0;left:0;width:100%;height:100%;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.07) 2px,rgba(0,0,0,0.07) 4px);
+  pointer-events:none;z-index:9999}
+
+header{text-align:center;padding:2rem 1rem 1.2rem;border-bottom:2px solid #ff0055;position:relative;overflow:hidden}
+header::before{content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(255,0,85,0.08) 0%,transparent 70%);pointer-events:none}
+header h1{font-family:'Press Start 2P',monospace;font-size:clamp(12px,3vw,20px);color:#ff0055;
+  text-shadow:0 0 12px #ff0055,0 0 24px #ff003366;letter-spacing:2px;animation:flicker 5s infinite}
+header p{margin-top:.5rem;font-size:10px;color:#666;letter-spacing:1px}
+.system-count{display:inline-block;margin-top:.4rem;padding:3px 10px;border:1px solid #ff005544;
+  color:#ff005599;font-size:9px;font-family:'Press Start 2P',monospace}
+
+@keyframes flicker{0%,100%{opacity:1}91%{opacity:1}92%{opacity:.7}93%{opacity:1}97%{opacity:.85}98%{opacity:1}}
+
+nav{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;padding:.8rem 1rem;
+  border-bottom:1px solid #1a1a1a;background:#09090f;position:sticky;top:0;z-index:100}
+.tab{font-family:'Press Start 2P',monospace;font-size:7px;padding:7px 10px;background:transparent;
+  border:1px solid #252525;color:#444;cursor:pointer;transition:all .15s;letter-spacing:.5px;white-space:nowrap}
+.tab:hover{border-color:#ff0055;color:#ff0055}
+.tab.active{border-color:#ff0055;color:#ff0055;background:#ff005512}
+
+.main{padding:1.5rem 1rem;max-width:1000px;margin:0 auto}
+
+.cat-section{margin-bottom:2.5rem}
+.cat-header{display:flex;align-items:center;gap:12px;margin-bottom:1rem;padding-bottom:.5rem;
+  border-bottom:1px solid #1a1a1a}
+.cat-icon{font-size:20px}
+.cat-title{font-family:'Press Start 2P',monospace;font-size:9px;color:#ff0055;letter-spacing:1px}
+.cat-desc{font-size:10px;color:#444;margin-top:2px}
+
+.systems-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.system-card{background:#0f0f18;border:1px solid #1c1c2a;padding:14px 10px;cursor:pointer;
+  transition:all .2s;text-align:center;position:relative;overflow:hidden}
+.system-card::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,0,85,0.06),transparent);transition:left .4s}
+.system-card:hover::before{left:100%}
+.system-card:hover{border-color:#ff005577;transform:translateY(-2px)}
+.system-card.selected{border-color:#ff0055;background:#1a0008;box-shadow:0 0 12px #ff005522}
+
+.system-icon{font-size:24px;margin-bottom:6px;display:block}
+.system-name{font-family:'Press Start 2P',monospace;font-size:6px;color:#bbb;line-height:1.7;letter-spacing:.3px}
+.system-badge{display:inline-block;margin-top:4px;padding:1px 5px;font-size:7px;border-radius:1px}
+.badge-stable{background:#0a200a;color:#0f0;border:1px solid #0f0}
+.badge-beta{background:#1a1a00;color:#ff0;border:1px solid #ff0}
+
+.launch-area{background:#0c0c18;border:1px solid #1c1c2a;padding:1.5rem;margin-bottom:1.5rem}
+.launch-area h2{font-family:'Press Start 2P',monospace;font-size:9px;color:#ff0055;margin-bottom:1rem;letter-spacing:1px}
+
+.selected-info{background:#0f0f1f;border:1px solid #252540;padding:10px 14px;margin-bottom:1rem;
+  display:none;font-size:11px;color:#888}
+.selected-info.visible{display:block}
+.selected-info strong{color:#ff0055;font-size:10px}
+
+.rom-drop{border:2px dashed #252525;padding:1.8rem 1rem;text-align:center;cursor:pointer;
+  transition:all .2s;position:relative}
+.rom-drop:hover,.rom-drop.dragover{border-color:#ff0055;background:#ff005508}
+.rom-drop input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.rom-drop-icon{font-size:28px;margin-bottom:6px}
+.rom-drop p{font-size:10px;color:#555}
+.rom-drop p span{color:#ff0055}
+.rom-filename{margin-top:6px;font-size:11px;color:#0f0}
+
+.launch-btn{display:block;width:100%;margin-top:1rem;padding:13px;
+  font-family:'Press Start 2P',monospace;font-size:9px;background:#ff0055;
+  color:#fff;border:none;cursor:pointer;letter-spacing:2px;transition:all .15s}
+.launch-btn:hover{background:#ff3377;transform:scale(1.005)}
+.launch-btn:active{transform:scale(.998)}
+.launch-btn:disabled{background:#1a1a1a;color:#333;cursor:not-allowed;transform:none}
+
+#emu-screen{display:none;position:fixed;inset:0;background:#000;z-index:2000;flex-direction:column}
+#emu-screen.active{display:flex}
+.emu-topbar{display:flex;justify-content:space-between;align-items:center;padding:7px 12px;
+  background:#07070d;border-bottom:1px solid #ff0055;flex-shrink:0;gap:8px}
+.emu-title{font-family:'Press Start 2P',monospace;font-size:7px;color:#ff0055;flex:1;overflow:hidden;
+  white-space:nowrap;text-overflow:ellipsis}
+.emu-close{font-family:'Press Start 2P',monospace;font-size:7px;padding:6px 10px;background:transparent;
+  border:1px solid #ff0055;color:#ff0055;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.emu-close:hover{background:#ff0055;color:#fff}
+#emu-container{flex:1;display:flex;align-items:center;justify-content:center;background:#000;overflow:hidden}
+#emu-container iframe{width:100%;height:100%;border:none}
+
+.notice{background:#12120a;border:1px solid #3a3a00;padding:10px 14px;margin-bottom:1.5rem;
+  font-size:10px;color:#888870;line-height:1.9}
+.notice strong{color:#cc0;font-family:'Press Start 2P',monospace;font-size:7px}
+
+.controls-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+.control-card{background:#0f0f18;border:1px solid #1c1c2a;padding:1rem}
+.control-card h3{font-family:'Press Start 2P',monospace;font-size:7px;color:#ff0055;margin-bottom:10px}
+.control-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #111;font-size:10px}
+.control-key{background:#1a1a1a;padding:2px 6px;border:1px solid #333;border-bottom:2px solid #444;
+  border-radius:2px;color:#fff;font-size:9px}
+
+.systems-table{width:100%;border-collapse:collapse;font-size:10px}
+.systems-table th{font-family:'Press Start 2P',monospace;font-size:7px;color:#ff0055;padding:8px;
+  text-align:left;border-bottom:1px solid #ff0055}
+.systems-table td{padding:7px 8px;border-bottom:1px solid #111;color:#888}
+.systems-table tr:hover td{background:#0f0f18}
+.tbl-badge{display:inline-block;padding:2px 5px;font-size:8px;border-radius:1px}
+.tbl-green{background:#0a200a;color:#0f0;border:1px solid #0f0}
+.tbl-yellow{background:#1a1a00;color:#ff0;border:1px solid #ff0}
+
+.ticker{border-top:1px solid #ff005522;padding:5px 0;margin-top:1.5rem;
+  font-size:8px;color:#ff005566;overflow:hidden;white-space:nowrap}
+.ticker-inner{display:inline-block;animation:ticker 30s linear infinite}
+@keyframes ticker{from{transform:translateX(100vw)}to{transform:translateX(-100%)}}
+
+@media(max-width:500px){
+  .systems-grid{grid-template-columns:repeat(2,1fr)}
+  .controls-grid{grid-template-columns:1fr}
+  header h1{font-size:10px}
+}
+</style>
+</head>
+<body>
+<div class="scanline"></div>
+
+<div id="emu-screen">
+  <div class="emu-topbar">
+    <span class="emu-title" id="emu-title">▶ EMULADOR</span>
+    <button class="emu-close" onclick="closeEmulator()">✕ SALIR</button>
+  </div>
+  <div id="emu-container"></div>
+</div>
+
+<header>
+  <h1>⚡ RETROLAUNCHER PRO</h1>
+  <p>powered by EmulatorJS · Chrome · PC · móvil · gamepad</p>
+  <div class="system-count" id="system-count">cargando sistemas...</div>
+</header>
+
+<nav>
+  <button class="tab active" onclick="showSection('launcher',this)">🕹 JUGAR</button>
+  <button class="tab" onclick="showSection('controls',this)">🎮 CONTROLES</button>
+  <button class="tab" onclick="showSection('systems',this)">📋 SISTEMAS</button>
+  <button class="tab" onclick="showSection('setup',this)">⚙ GUÍA</button>
+</nav>
+
+<div class="main">
+
+<!-- LAUNCHER -->
+<div id="section-launcher">
+  <div class="notice">
+    <strong>⚠ AVISO LEGAL</strong><br>
+    Este launcher no incluye ROMs ni juegos. Usa únicamente ROMs de juegos que poseas físicamente,
+    homebrew gratuito o software de dominio público.
+  </div>
+  <div id="all-categories"></div>
+  <div class="launch-area" id="launch-area">
+    <h2>▸ LANZAR JUEGO</h2>
+    <div class="selected-info" id="selected-info">
+      Sistema: <strong id="sel-name">—</strong><br>
+      Core: <strong id="sel-core">—</strong> &nbsp;|&nbsp; Formatos: <strong id="sel-exts">—</strong>
+    </div>
+    <div class="rom-drop" id="rom-drop">
+      <input type="file" id="rom-input"
+        accept=".zip,.7z,.nes,.fds,.sfc,.smc,.gba,.gb,.gbc,.n64,.z64,.v64,.md,.smd,.gen,.32x,.sms,.gg,.pce,.ws,.wsc,.nds,.a78,.a26,.vb,.cue,.iso,.chd,.pbp,.bin,.rom,.j64,.jag,.lnx,.vec,.ngc,.ngp,.sg"
+        onchange="handleRom(this)">
+      <div class="rom-drop-icon">📁</div>
+      <p>Arrastra tu ROM aquí o <span>haz clic para buscar</span></p>
+      <p style="margin-top:3px;font-size:9px;">Soporta .zip .nes .sfc .gba .gb .n64 .md .pce .psx .gg .lnx y más</p>
+      <div class="rom-filename" id="rom-filename"></div>
+    </div>
+    <button class="launch-btn" id="launch-btn" onclick="launchGame()" disabled>▶ INSERTAR MONEDA · INICIAR</button>
+  </div>
+  <div class="ticker">
+    <span class="ticker-inner">
+      ★ +40 sistemas EmulatorJS ★ Gamepads USB/BT compatibles ★ Controles táctiles automáticos en móvil ★
+      Guardar estado F2 · Cargar F4 · Pantalla completa F ★ Usa tus propias ROMs legalmente adquiridas ★
+    </span>
+  </div>
+</div>
+
+<!-- CONTROLES -->
+<div id="section-controls" style="display:none">
+  <div class="controls-grid">
+    <div class="control-card">
+      <h3>🎮 Jugador 1</h3>
+      <div class="control-row"><span>Arriba</span><span class="control-key">↑ / W</span></div>
+      <div class="control-row"><span>Abajo</span><span class="control-key">↓ / S</span></div>
+      <div class="control-row"><span>Izquierda</span><span class="control-key">← / A</span></div>
+      <div class="control-row"><span>Derecha</span><span class="control-key">→ / D</span></div>
+      <div class="control-row"><span>Botón A</span><span class="control-key">Z</span></div>
+      <div class="control-row"><span>Botón B</span><span class="control-key">X</span></div>
+      <div class="control-row"><span>Botón X</span><span class="control-key">C</span></div>
+      <div class="control-row"><span>Botón Y</span><span class="control-key">V</span></div>
+      <div class="control-row"><span>L / R</span><span class="control-key">Q / E</span></div>
+      <div class="control-row"><span>Start</span><span class="control-key">Enter</span></div>
+      <div class="control-row"><span>Select</span><span class="control-key">Shift</span></div>
+    </div>
+    <div class="control-card">
+      <h3>🎮 Jugador 2</h3>
+      <div class="control-row"><span>Arriba</span><span class="control-key">I</span></div>
+      <div class="control-row"><span>Abajo</span><span class="control-key">K</span></div>
+      <div class="control-row"><span>Izquierda</span><span class="control-key">J</span></div>
+      <div class="control-row"><span>Derecha</span><span class="control-key">L</span></div>
+      <div class="control-row"><span>Botón A</span><span class="control-key">Num1</span></div>
+      <div class="control-row"><span>Botón B</span><span class="control-key">Num2</span></div>
+      <div class="control-row"><span>Botón X</span><span class="control-key">Num3</span></div>
+      <div class="control-row"><span>Botón Y</span><span class="control-key">Num4</span></div>
+      <div class="control-row"><span>Start</span><span class="control-key">Num5</span></div>
+    </div>
+    <div class="control-card">
+      <h3>💾 Emulador</h3>
+      <div class="control-row"><span>Guardar estado</span><span class="control-key">F2</span></div>
+      <div class="control-row"><span>Siguiente slot</span><span class="control-key">F3</span></div>
+      <div class="control-row"><span>Cargar estado</span><span class="control-key">F4</span></div>
+      <div class="control-row"><span>Pantalla completa</span><span class="control-key">F</span></div>
+      <div class="control-row"><span>Pausa</span><span class="control-key">P</span></div>
+      <div class="control-row"><span>Fotograma</span><span class="control-key">.</span></div>
+      <div class="control-row"><span>Velocidad +</span><span class="control-key">+</span></div>
+      <div class="control-row"><span>Velocidad -</span><span class="control-key">-</span></div>
+      <div class="control-row"><span>Mute</span><span class="control-key">M</span></div>
+      <div class="control-row"><span>Reset</span><span class="control-key">R</span></div>
+    </div>
+    <div class="control-card">
+      <h3>📱 Táctil / Móvil</h3>
+      <div class="control-row"><span>D-Pad virtual</span><span style="color:#0f0;font-size:9px">AUTO</span></div>
+      <div class="control-row"><span>Botones A/B/X/Y</span><span style="color:#0f0;font-size:9px">AUTO</span></div>
+      <div class="control-row"><span>Menú guardar</span><span style="color:#0f0;font-size:9px">AUTO</span></div>
+      <div class="control-row"><span>Orientación</span><span style="color:#ff0;font-size:9px">HORIZONTAL</span></div>
+      <div style="margin-top:8px;font-size:9px;color:#444;line-height:1.8">EmulatorJS detecta pantalla táctil y despliega overlay automáticamente.</div>
+    </div>
+    <div class="control-card">
+      <h3>🕹 Gamepad USB/BT</h3>
+      <div class="control-row"><span>Xbox Series</span><span style="color:#0f0;font-size:9px">✓ AUTO</span></div>
+      <div class="control-row"><span>PlayStation 4/5</span><span style="color:#0f0;font-size:9px">✓ AUTO</span></div>
+      <div class="control-row"><span>Switch Pro</span><span style="color:#ff0;font-size:9px">~ PARCIAL</span></div>
+      <div class="control-row"><span>Arcade Stick USB</span><span style="color:#0f0;font-size:9px">✓ AUTO</span></div>
+      <div class="control-row"><span>Genérico HID</span><span style="color:#0f0;font-size:9px">✓ AUTO</span></div>
+      <div style="margin-top:8px;font-size:9px;color:#444;line-height:1.8">Conecta antes de abrir el juego. Pulsa un botón para activar. Configura en menú ⚙.</div>
+    </div>
+  </div>
+</div>
+
+<!-- SISTEMAS -->
+<div id="section-systems" style="display:none">
+  <table class="systems-table">
+    <thead>
+      <tr>
+        <th>SISTEMA</th>
+        <th>CORE</th>
+        <th>FORMATOS ROM</th>
+        <th>ESTADO</th>
+      </tr>
+    </thead>
+    <tbody id="systems-table-body"></tbody>
+  </table>
+</div>
+
+<!-- GUÍA -->
+<div id="section-setup" style="display:none">
+  <div style="background:#0f0f18;border-left:3px solid #ff0055;padding:1rem;margin-bottom:1rem">
+    <h3 style="font-family:'Press Start 2P',monospace;font-size:8px;color:#ff0055;margin-bottom:6px">1 — SERVIDOR LOCAL</h3>
+    <p style="font-size:10px;color:#888;line-height:1.9">
+      Para evitar bloqueos CORS abre este archivo desde un servidor local:<br><br>
+      Python 3: <code style="background:#111;padding:1px 5px;color:#0f0">python3 -m http.server 8080</code><br>
+      Node.js: <code style="background:#111;padding:1px 5px;color:#0f0">npx serve .</code><br>
+      PHP: <code style="background:#111;padding:1px 5px;color:#0f0">php -S localhost:8080</code>
+    </p>
+  </div>
+  <div style="background:#0f0f18;border-left:3px solid #ff0055;padding:1rem;margin-bottom:1rem">
+    <h3 style="font-family:'Press Start 2P',monospace;font-size:8px;color:#ff0055;margin-bottom:6px">2 — CÓMO USAR</h3>
+    <p style="font-size:10px;color:#888;line-height:1.9">
+      1. Selecciona el sistema en la cuadrícula<br>
+      2. Arrastra tu ROM o pulsa el área de carga<br>
+      3. Pulsa "Insertar Moneda · Iniciar"<br>
+      4. Los cores se descargan automáticamente desde CDN (necesitas internet la 1ª vez)
+    </p>
+  </div>
+  <div style="background:#0f0f18;border-left:3px solid #ff0055;padding:1rem;margin-bottom:1rem">
+    <h3 style="font-family:'Press Start 2P',monospace;font-size:8px;color:#ff0055;margin-bottom:6px">3 — ARCADE / NEO GEO</h3>
+    <p style="font-size:10px;color:#888;line-height:1.9">
+      Usa ROMs MAME en .zip. Neo Geo requiere <code style="background:#111;padding:1px 5px;color:#0f0">neogeo.zip</code> (BIOS) en la misma carpeta.
+    </p>
+  </div>
+  <div style="background:#0f0f18;border-left:3px solid #ff0055;padding:1rem;margin-bottom:1rem">
+    <h3 style="font-family:'Press Start 2P',monospace;font-size:8px;color:#ff0055;margin-bottom:6px">4 — PS1 / CD-ROM</h3>
+    <p style="font-size:10px;color:#888;line-height:1.9">
+      Usa <code style="background:#111;padding:1px 5px;color:#0f0">.cue+.bin</code>, <code style="background:#111;padding:1px 5px;color:#0f0">.iso</code> o <code style="background:#111;padding:1px 5px;color:#0f0">.chd</code>. Algunos juegos necesitan BIOS de PS1 (<code style="background:#111;padding:1px 5px;color:#0f0">scph1001.bin</code>).
+    </p>
+  </div>
+  <div style="background:#0f0f18;border-left:3px solid #ff0055;padding:1rem;margin-bottom:1rem">
+    <h3 style="font-family:'Press Start 2P',monospace;font-size:8px;color:#ff0055;margin-bottom:6px">5 — ROMs LEGALES</h3>
+    <p style="font-size:10px;color:#888;line-height:1.9">
+      • <a href="https://www.romhacking.net" target="_blank" style="color:#ff0055">romhacking.net</a> — homebrew y traducciones<br>
+      • <a href="https://itch.io" target="_blank" style="color:#ff0055">itch.io</a> — juegos homebrew gratuitos<br>
+      • <a href="https://archive.org/details/softwarelibrary" target="_blank" style="color:#ff0055">archive.org</a> — software de dominio público<br>
+      • <a href="https://csdb.dk" target="_blank" style="color:#ff0055">csdb.dk</a> — demos y homebrews C64<br>
+      • <a href="https://spectrumcomputing.co.uk" target="_blank" style="color:#ff0055">spectrumcomputing.co.uk</a> — ZX Spectrum
+    </p>
+  </div>
+</div>
+
+</div>
+
+<script>
+const CATEGORIES = [
+  {
+    icon:"🍄", title:"NINTENDO", desc:"NES · SNES · N64 · GB · GBA · NDS · Virtual Boy",
+    systems:[
+      {name:"NES / Famicom",    icon:"🎮", core:"nes",     exts:".nes .zip",           status:"stable"},
+      {name:"Famicom Disk",     icon:"💾", core:"nes",     exts:".fds .zip",           status:"beta"},
+      {name:"SNES",             icon:"🟣", core:"snes",    exts:".sfc .smc .zip",      status:"stable"},
+      {name:"Nintendo 64",      icon:"🌟", core:"n64",     exts:".n64 .z64 .v64",      status:"stable"},
+      {name:"Game Boy",         icon:"🟢", core:"gb",      exts:".gb .zip",            status:"stable"},
+      {name:"Game Boy Color",   icon:"🔵", core:"gbc",     exts:".gbc .zip",           status:"stable"},
+      {name:"Game Boy Advance", icon:"🔴", core:"gba",     exts:".gba .zip",           status:"stable"},
+      {name:"Nintendo DS",      icon:"📺", core:"nds",     exts:".nds .zip",           status:"beta"},
+      {name:"Virtual Boy",      icon:"🕶", core:"vb",      exts:".vb .zip",            status:"beta"},
+    ]
+  },
+  {
+    icon:"⚡", title:"SEGA", desc:"Master System · Genesis · Game Gear · 32X · Mega CD · Saturn",
+    systems:[
+      {name:"SG-1000",          icon:"🟡", core:"segaMS",    exts:".sg .zip",           status:"stable"},
+      {name:"Master System",    icon:"⚡", core:"segaMS",    exts:".sms .zip",          status:"stable"},
+      {name:"Game Gear",        icon:"🎲", core:"segaGG",    exts:".gg .zip",           status:"stable"},
+      {name:"Genesis / MD",     icon:"🎯", core:"segaMD",    exts:".md .smd .gen .zip", status:"stable"},
+      {name:"Sega 32X",         icon:"🔺", core:"sega32x",   exts:".32x .zip",          status:"beta"},
+      {name:"Sega CD",          icon:"💿", core:"segaCD",    exts:".cue .iso .chd",     status:"beta"},
+      {name:"Sega Saturn",      icon:"🪐", core:"segaSaturn",exts:".cue .iso .chd",     status:"beta"},
+    ]
+  },
+  {
+    icon:"🔷", title:"SONY", desc:"PlayStation 1 y 2",
+    systems:[
+      {name:"PlayStation 1",    icon:"🔷", core:"psx",    exts:".cue .iso .chd .pbp", status:"stable"},
+      {name:"PlayStation 2",    icon:"🔹", core:"ps2",    exts:".iso .chd",           status:"beta"},
+    ]
+  },
+  {
+    icon:"👾", title:"ATARI CONSOLAS", desc:"2600 · 5200 · 7800 · Lynx · Jaguar",
+    systems:[
+      {name:"Atari 2600",       icon:"👾", core:"atari2600", exts:".a26 .bin .zip",  status:"stable"},
+      {name:"Atari 5200",       icon:"🕹", core:"atari5200", exts:".a52 .bin .zip",  status:"beta"},
+      {name:"Atari 7800",       icon:"🎮", core:"atari7800", exts:".a78 .bin .zip",  status:"stable"},
+      {name:"Atari Lynx",       icon:"🟠", core:"lynx",      exts:".lnx .zip",       status:"stable"},
+      {name:"Atari Jaguar",     icon:"🐆", core:"jaguar",    exts:".j64 .jag .zip",  status:"beta"},
+    ]
+  },
+  {
+    icon:"🕹", title:"ARCADE", desc:"MAME · Neo Geo · CPS1 · CPS2 · CPS3",
+    systems:[
+      {name:"Arcade (MAME)",    icon:"🕹", core:"arcade", exts:".zip .7z",           status:"stable"},
+      {name:"Neo Geo AES/MVS",  icon:"🏆", core:"arcade", exts:".zip + neogeo.zip",  status:"stable"},
+      {name:"CPS1 (Capcom)",    icon:"🥊", core:"arcade", exts:".zip",               status:"stable"},
+      {name:"CPS2 (Capcom)",    icon:"🥋", core:"arcade", exts:".zip",               status:"stable"},
+      {name:"CPS3 (Capcom)",    icon:"🎌", core:"arcade", exts:".zip",               status:"beta"},
+    ]
+  },
+  {
+    icon:"🎯", title:"OTRAS CONSOLAS", desc:"PC Engine · WonderSwan · Neo Geo Pocket · 3DO · Vectrex",
+    systems:[
+      {name:"PC Engine / TG-16",icon:"🟡", core:"pce",     exts:".pce .zip",          status:"stable"},
+      {name:"PC-FX",            icon:"🟤", core:"pcfx",    exts:".cue .iso .chd",     status:"beta"},
+      {name:"WonderSwan",       icon:"🔶", core:"wswan",   exts:".ws .wsc .zip",      status:"beta"},
+      {name:"Neo Geo Pocket",   icon:"🔸", core:"ngp",     exts:".ngc .ngp .zip",     status:"stable"},
+      {name:"3DO Interactive",  icon:"🟠", core:"3do",     exts:".iso .chd",          status:"beta"},
+      {name:"Vectrex",          icon:"📐", core:"vectrex", exts:".vec .zip",          status:"stable"},
+    ]
+  },
+  {
+    icon:"💻", title:"MICROORDENADORES", desc:"Atari 800 · C64 · MSX · ZX Spectrum (via EmulatorJS)",
+    systems:[
+      {name:"Atari 800 / XL",   icon:"🔵", core:"atari800",  exts:".xex .atr .xfd .zip", status:"stable"},
+      {name:"Commodore 64",     icon:"🟫", core:"vice_x64",  exts:".d64 .t64 .prg .tap", status:"beta"},
+      {name:"Commodore VIC-20", icon:"🟤", core:"vice_xvic", exts:".d64 .tap .prg",      status:"beta"},
+      {name:"MSX",              icon:"🖥", core:"fmsx",      exts:".rom .dsk .cas .zip", status:"beta"},
+      {name:"ZX Spectrum",      icon:"🌈", core:"fuse",      exts:".sna .z80 .tap .tzx", status:"beta"},
+      {name:"Amstrad CPC",      icon:"🔲", core:"cpcemu",    exts:".dsk .cdt .zip",      status:"beta"},
+    ]
+  },
+];
+
+let selectedSystem = null;
+let romFile = null;
+
+function buildCategories() {
+  const container = document.getElementById('all-categories');
+  let total = 0;
+  CATEGORIES.forEach(cat => {
+    total += cat.systems.length;
+    const section = document.createElement('div');
+    section.className = 'cat-section';
+    section.innerHTML = `
+      <div class="cat-header">
+        <span class="cat-icon">${cat.icon}</span>
+        <div>
+          <div class="cat-title">${cat.title}</div>
+          <div class="cat-desc">${cat.desc}</div>
+        </div>
+      </div>
+      <div class="systems-grid" id="grid-${cat.title.replace(/\s/g,'')}"></div>
+    `;
+    container.appendChild(section);
+    const grid = section.querySelector('.systems-grid');
+    cat.systems.forEach(sys => {
+      const card = document.createElement('div');
+      card.className = 'system-card';
+      const badgeClass = sys.status === 'beta' ? 'badge-beta' : 'badge-stable';
+      const badgeText = sys.status === 'beta' ? '⚠ BETA' : '✓ ESTABLE';
+      card.innerHTML = `
+        <span class="system-icon">${sys.icon}</span>
+        <div class="system-name">${sys.name}</div>
+        <div class="system-badge ${badgeClass}">${badgeText}</div>
+      `;
+      card.onclick = () => selectSystem(sys, card);
+      grid.appendChild(card);
+    });
+  });
+  document.getElementById('system-count').textContent = `${total} SISTEMAS DISPONIBLES`;
+}
+
+function buildSystemsTable() {
+  const tbody = document.getElementById('systems-table-body');
+  CATEGORIES.forEach(cat => {
+    const catRow = document.createElement('tr');
+    catRow.innerHTML = `<td colspan="4" style="padding:10px 8px 4px;color:#ff0055;font-family:'Press Start 2P',monospace;font-size:7px;border-top:1px solid #1a1a1a">${cat.icon} ${cat.title}</td>`;
+    tbody.appendChild(catRow);
+    cat.systems.forEach(sys => {
+      const tr = document.createElement('tr');
+      const badge = sys.status === 'beta'
+        ? '<span class="tbl-badge tbl-yellow">BETA</span>'
+        : '<span class="tbl-badge tbl-green">ESTABLE</span>';
+      tr.innerHTML = `
+        <td>${sys.icon} ${sys.name}</td>
+        <td><code style="background:#111;padding:1px 4px;color:#0f0;font-size:9px">${sys.core}</code></td>
+        <td style="font-size:9px;color:#555">${sys.exts}</td>
+        <td>${badge}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  });
+}
+
+function selectSystem(sys, card) {
+  document.querySelectorAll('.system-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  selectedSystem = sys;
+  document.getElementById('sel-name').textContent = sys.name;
+  document.getElementById('sel-core').textContent = sys.core;
+  document.getElementById('sel-exts').textContent = sys.exts;
+  document.getElementById('selected-info').classList.add('visible');
+  checkLaunchReady();
+  document.getElementById('launch-area').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function handleRom(input) {
+  if (input.files && input.files[0]) {
+    romFile = input.files[0];
+    document.getElementById('rom-filename').textContent = '✓ ' + romFile.name;
+    checkLaunchReady();
+  }
+}
+
+const dropZone = document.getElementById('rom-drop');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+    romFile = e.dataTransfer.files[0];
+    document.getElementById('rom-filename').textContent = '✓ ' + romFile.name;
+    checkLaunchReady();
+  }
+});
+
+function checkLaunchReady() {
+  document.getElementById('launch-btn').disabled = !(selectedSystem && romFile);
+}
+
+function launchGame() {
+  if (!selectedSystem || !romFile) return;
+  const romUrl = URL.createObjectURL(romFile);
+  const gameName = romFile.name.replace(/\.[^.]+$/, '');
+  document.getElementById('emu-title').textContent = `▶ ${gameName} · ${selectedSystem.name}`;
+  const emuHTML = `<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>${gameName}</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#000;display:flex;align-items:center;justify-content:center;width:100vw;height:100vh;overflow:hidden}#game{width:100%;height:100%}</style>
+</head><body>
+<div id="game"></div>
+<script>
+var EJS_player="#game";
+var EJS_core="${selectedSystem.core}";
+var EJS_gameUrl="${romUrl}";
+var EJS_pathtodata="https://cdn.emulatorjs.org/stable/data/";
+var EJS_startOnLoaded=true;
+var EJS_color="#ff0055";
+var EJS_language="es";
+var EJS_Buttons={playPause:true,restart:true,mute:true,settings:true,fullscreen:true,saveState:true,loadState:true,screenRecord:false,gamepad:true,cheat:false,volume:true,saveSavFiles:true,loadSavFiles:true,quickSave:true,quickLoad:true};
+<\/script>
+<script src="https://cdn.emulatorjs.org/stable/data/loader.js"><\/script>
+</body></html>`;
+  const blob = new Blob([emuHTML], {type:'text/html'});
+  const container = document.getElementById('emu-container');
+  container.innerHTML = '';
+  const iframe = document.createElement('iframe');
+  iframe.src = URL.createObjectURL(blob);
+  iframe.setAttribute('allowfullscreen','');
+  iframe.setAttribute('allow','gamepad; fullscreen; autoplay');
+  iframe.style.cssText = 'width:100%;height:100%;border:none';
+  container.appendChild(iframe);
+  document.getElementById('emu-screen').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeEmulator() {
+  document.getElementById('emu-screen').classList.remove('active');
+  document.getElementById('emu-container').innerHTML = '';
+  document.body.style.overflow = '';
+}
+
+function showSection(name, tabEl) {
+  ['launcher','controls','systems','setup'].forEach(s => {
+    document.getElementById('section-'+s).style.display = 'none';
+  });
+  document.getElementById('section-'+name).style.display = 'block';
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  tabEl.classList.add('active');
+}
+
+buildCategories();
+buildSystemsTable();
+</script>
+</body>
+</html>
